@@ -1,0 +1,69 @@
+WARNING:root:Open ports found: [49666, 16992, 49664, 445, 135, 16992, 49681, 33060, 623, 49667, 49668, 33060, 49681, 5354, 49666, 139, 5040, 49669, 27015, 15292, 135, 139, 623, 49665, 445, 49664, 3306, 63342, 49667, 49665, 3306, 49668]. These may be vulnerable.
+WARNING:root:No active antivirus detected. This is a vulnerability.
+INFO:root:System vulnerability check completed.
+WARNING:root:Open ports found: [49666, 16992, 49664, 445, 135, 16992, 49681, 33060, 623, 49667, 49668, 33060, 49681, 5354, 49666, 139, 5040, 49669, 27015, 15292, 135, 139, 623, 49665, 445, 49664, 3306, 63342, 49667, 49665, 3306, 49668]. These may be vulnerable.
+WARNING:root:No active antivirus detected. This is a vulnerability.
+INFO:root:System vulnerability check completed.
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\16\\169318d59deed2f95671902f35bb36cf00ac8c6d.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\c8\\c85005c7f951ba6c7962671f596fab3a904457c6.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\38\\38f17f44428b8627b793cf33269788cacd98192d.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\ae\\ae1e706899a66f502b4c4e22f4fbe12e4802f5ab.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\23\\23ba9d0d3eeb17a43b770e31a9039eb5a18c33b7.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\23\\23ba9d0d3eeb17a43b770e31a9039eb5a18c33b7.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+WARNING:root:Suspicious file modification detected: /VULNCHECK\ransomware_log.log
+ERROR:root:Error calculating hash: [Errno 2] No such file or directory: '/VULNCHECK\\.idea\\workspace.xml~'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\e6\\e68e1c21ba2604f736ac85979c3e4b619350babe.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\d1\\d101e7a4ee4da896bca57c14e45556a72d1d2f35.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\d1\\d101e7a4ee4da896bca57c14e45556a72d1d2f35.file'
+WARNING:root:Suspicious file modification detected: /VULNCHECK\ransomware_log.log
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\70\\706756dbda2fa924b23c9555812f18ffbf66cf6e.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\70\\706756dbda2fa924b23c9555812f18ffbf66cf6e.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\e1\\e10ae220d07990352814d7c9bfe141cd2949293e.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\f5\\f559574ca7d5af2d8ab87ff4f372ba3d183af148.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\d1\\d1ceaad4883c3d243020d83fd84a9f0f0038b644.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\4e\\4e55c0de3dad0d803a1d3fb835fbb665c4961925.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\aa\\aae9defbf64ef5b4025a9cffceb009b686bf59e2.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\67\\672093fcebedbc9ff99a47f2e5eddd904f42db02.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\32\\32a174afe96c6e954d6ec3799758b9cc02a2945c.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\32\\32a174afe96c6e954d6ec3799758b9cc02a2945c.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\81\\81e7beda35b5cc7cf4e486ac4c6e1593dec5ead9.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\ce\\ce45c20adfee8bcb9b06e2287fc44d0650962e6b.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\ce\\ce45c20adfee8bcb9b06e2287fc44d0650962e6b.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\0e\\0e5cf138d627792f46ec0fbfe58e13d49a008778.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\45\\45a4a520129d75105624c265cc38af8ba73355a1.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\8d\\8ddcf44ca0b4cae092b22e49abfb6fec35ba500c.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\d6\\d6595f27e9553a2ff5fa26535ff5c35d284b5f9b.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\4a\\4a2dedbec00e632820d4d17c38229fbafedb9050.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\4a\\4a2dedbec00e632820d4d17c38229fbafedb9050.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\96\\96c76cf9fbc043774cf8f439d9fbfea39ff08b4e.file'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+ERROR:root:Error calculating hash: [Errno 13] Permission denied: '/Spotify\\index.dat'
+WARNING:root:Open ports found: [49941, 139, 16992, 49666, 16992, 49679, 49664, 49664, 45623, 3306, 5354, 135, 33060, 135, 49667, 49669, 27015, 49668, 3306, 63342, 49940, 49665, 49666, 49667, 623, 33060, 445, 16494, 623, 63992, 49665, 139, 15292, 15393, 49668, 5040, 49679, 445]. These may be vulnerable.
+WARNING:root:No active antivirus detected. This is a vulnerability.
+INFO:root:System vulnerability check completed.
+WARNING:root:Open ports found: [33060, 33060, 15292, 623, 139, 3306, 445, 5354, 49669, 27015, 623, 63342, 50000, 49668, 135, 49665, 3306, 49664, 16992, 49664, 5040, 139, 49677, 16494, 34075, 15393, 49666, 49668, 49667, 16992, 49666, 139, 445, 49665, 49667, 34075, 135, 49677]. These may be vulnerable.
+WARNING:root:No active antivirus detected. This is a vulnerability.
+INFO:root:System vulnerability check completed.
