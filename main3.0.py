@@ -2,9 +2,12 @@ import subprocess
 import sys
 import psutil
 import platform
-import nmap
-from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar
+
+import self
+# import nmap
+# from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar, QTextEdit, \
+    QScrollArea
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 import socket
@@ -39,6 +42,15 @@ def get_system_info():
     return info
 
 
+# function to check system software versions
+def check_software_versions():
+    try:
+        installed_software = subprocess.check_output("wmic product get name,version", shell=True, encoding='utf-8', errors='replace')
+        return  installed_software
+    except Exception as e:
+        return f"Error: {e}"
+
+
 # Function to scan open ports
 # def scan_ports():
 #     nm = nmap.PortScanner()
@@ -52,8 +64,8 @@ def get_system_info():
 #             lport = nm[host][proto].keys()
 #             open_ports.extend(list(lport))
 #     return open_ports
-#
-#
+
+
 # def scan_ports_2():
 #     nm = nmap.PortScanner()
 #
@@ -85,7 +97,7 @@ def software_version():
 # A simple function to fetch CVE vulnerabilities for a specific software version
 def fetch_vulnerabilities(software_name, version):
     # Mockup API call to a CVE or vulnerability database
-    url = f"https://api.example.com/vulnerabilities?name={software_name}&version={version}"
+    url = f"https://services.nvd.nist.gov/rest/json/cves/2.0{software_name}&version={version}"
     response = requests.get(url)
     if response.status_code == 200:
         vulnerabilities = response.json()
@@ -157,6 +169,7 @@ def one_click_update(software_name):
 #         return ["Update OS to the latest version.", "Patch found vulnerabilities."]
 #     return ["No critical vulnerabilities found."]
 
+
 class AntiMalwareApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -177,7 +190,7 @@ class AntiMalwareApp(QWidget):
             QPushButton:hover {
                 background-color: #5E81AC;
             }
-            QLabel {
+            QLabel, QTextEdit {
                 color: #D8DEE9;
             }
         """)
@@ -204,27 +217,42 @@ class AntiMalwareApp(QWidget):
         layout.addWidget(self.progress)
 
         # Result labels
-        self.result_label = QLabel("Scan results will appear here.")
-        layout.addWidget(self.result_label)
+        self.result_area = QTextEdit()
+        self.result_area.setReadOnly(True)
+        self.result_area.setStyleSheet("background-color: #3B4252; color: #D8DEE9;")
 
+        # Scroll Area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(self.result_area)
+
+        layout.addWidget(scroll_area)
         self.setLayout(layout)
 
     def run_scan(self):
         # Simulated scan process
         self.progress.setValue(0)
-        system_info = get_system_info()
-        # open_ports = scan_ports()
-        # open_ports_2 = scan_ports_2()
-        antivirus = check_antivirus()
-        # vulnerabilities = check_vulnerabilities(system_info)
+        try:
+         system_info = get_system_info()
+         software_versions = check_software_versions()
+         antivirus = check_antivirus()
+         # open_ports = scan_ports()
+         # open_ports_2 = scan_ports_2()
+         # vulnerabilities = check_vulnerabilities(system_info)
+         import time
+         time.sleep(2)
 
-        self.progress.setValue(100)
-        self.result_label.setText(f"System: {system_info['OS']}\n"
-                                  # f"Open Ports For {get_device_ip()}:{open_ports}\nOpen "
-                                  # f"ports 2 for Host machine:{open_ports_2}\n"
-                                  f"{antivirus}")
-        # f"Recommendations: {'; '.join(vulnerabilities)}")
-
+         self.progress.setValue(100)
+         self.result_area.setPlainText(f"System: {system_info['OS']}\n"
+                                    f"Software Version: {software_versions}\n"
+                                    f"Antivirus: {antivirus}"
+                                    # f"Open Ports For {get_device_ip()}:{open_ports}\nOpen "
+                                    # f"ports 2 for Host machine:{open_ports_2}\n"
+                                           )
+                                 # f"Recommendations: {'; '.join(vulnerabilities)}")
+        except Exception as e:
+          self.result_area.setPlainText(f"Error occurred: {e}")
+          self.progress.setValue(0)
 
 # Application loop
 if __name__ == '__main__':
