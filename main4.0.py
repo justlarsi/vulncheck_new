@@ -1,4 +1,5 @@
 import logging
+import os
 import socket
 import subprocess
 import sys
@@ -44,32 +45,32 @@ def get_device_ip():
     except Exception as e:
         return f"Error occurred: {e}"
 
-# Function to scan open ports
-def scan_ports():
-    nm = nmap.PortScanner()
-    ip = get_device_ip()
-    print(f"{ip}")
-    nm.scan(f'{ip}', '1-1024')  # Localhost scan for open ports
-    # nm.scan('127.0.0.1', '1-1024')
-    open_ports = []
-    for host in nm.all_hosts():
-        for proto in nm[host].all_protocols():
-            lport = nm[host][proto].keys()
-            open_ports.extend(list(lport))
-    return open_ports
-
-
-def scan_ports_2():
-    nm = nmap.PortScanner()
-
-    # nm.scan(f'{ip}', '1-1024') # Localhost scan for open ports
-    nm.scan('127.0.0.1', '1-1024')
-    open_ports_2 = []
-    for host in nm.all_hosts():
-        for proto in nm[host].all_protocols():
-            lport = nm[host][proto].keys()
-            open_ports_2.extend(list(lport))
-    return open_ports_2
+# # Function to scan open ports
+# def scan_ports():
+#     nm = nmap.PortScanner()
+#     ip = get_device_ip()
+#     print(f"{ip}")
+#     nm.scan(f'{ip}', '1-1024')  # Localhost scan for open ports
+#     # nm.scan('127.0.0.1', '1-1024')
+#     open_ports = []
+#     for host in nm.all_hosts():
+#         for proto in nm[host].all_protocols():
+#             lport = nm[host][proto].keys()
+#             open_ports.extend(list(lport))
+#     return open_ports
+#
+#
+# def scan_ports_2():
+#     nm = nmap.PortScanner()
+#
+#     # nm.scan(f'{ip}', '1-1024') # Localhost scan for open ports
+#     nm.scan('127.0.0.1', '1-1024')
+#     open_ports_2 = []
+#     for host in nm.all_hosts():
+#         for proto in nm[host].all_protocols():
+#             lport = nm[host][proto].keys()
+#             open_ports_2.extend(list(lport))
+#     return open_ports_2
 
 
 def check_antivirus():
@@ -201,49 +202,37 @@ class UpdateWorker(QThread):
             logging.basicConfig(filename='update_python_packages.log', level=logging.INFO,
                                 format='%(asctime)s - %(levelname)s - %(message)s')
 
-            # Update pip first to ensure we have the latest version
-            logging.info("Updating pip...")
-            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"],
-                           capture_output=True, text=True, check=True)
+            # Get the current Python version
+            current_version = sys.version.split()[0]
 
-            # Get the list of outdated packages
-            logging.info("Checking for outdated packages...")
-            update_process = subprocess.run([sys.executable, "-m", "pip", "list", "--outdated"],
-                                            capture_output=True, text=True, check=True)
+            # Update Python to the latest version using pyupgrade
+            logging.info("Updating Python to the latest version...")
+            subprocess.run(["py", "-m", "pip", "install", "--upgrade", "pip"], capture_output=True, text=True,
+                           check=True)
+            subprocess.run(["py", "-m", "pip", "install", "--upgrade", "setuptools"], capture_output=True, text=True,
+                           check=True)
 
-            updated_versions = []
-            if update_process.stdout:
-                for pkg in update_process.stdout.splitlines()[2:]:  # Skip the header lines
-                    try:
-                        package_details = pkg.split()
-                        package_name = package_details[0]
-                        logging.info(f"Updating package: {package_name}")
+            # Get the updated Python version
+            updated_version = \
+            subprocess.run(["python", "--version"], capture_output=True, text=True, check=True).stdout.strip().split()[
+                1]
 
-                        # Perform the update
-                        result = subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", package_name],
-                                                capture_output=True, text=True, check=True)
-
-                        # Log success and capture updated package
-                        logging.info(f"Successfully updated {package_name}. Output: {result.stdout}")
-                        updated_versions.append(package_name)
-                    except subprocess.CalledProcessError as update_err:
-                        logging.error(f"Failed to update {package_name}: {update_err.stderr}")
-
-            if updated_versions:
-                return f"Updated packages: {', '.join(updated_versions)}"
+            # Check if the update was successful
+            if updated_version != current_version:
+                self.update_complete.emit(f"Python updated successfully from {current_version} to {updated_version}.",
+                                          updated_version)
             else:
-                return "No packages were outdated or updated."
+                self.update_complete.emit(f"Python update failed. Current version: {current_version}.", current_version)
 
         except subprocess.CalledProcessError as e:
             error_message = f"Update process failed: {e.stderr}"
             logging.error(error_message)
-            return error_message
+            self.update_complete.emit(error_message, "Unknown Version")
         except Exception as e:
             # Catch all unexpected errors
             error_message = f"Unexpected error during update: {str(e)}"
             logging.error(error_message)
-            return error_message
-
+            self.update_complete.emit(error_message, "Unknown Version")
     def update_windows_os(self):
         try:
             update_command = 'powershell "Get-WindowsUpdate -Install -AcceptAll"'
@@ -404,7 +393,8 @@ class AntiMalwareApp(QWidget):
             }
             QScrollBar::handle:vertical {
                 background: #1F8C56;
-                min-height: 400px;
+                min-height: 800px;
+                
                 border-radius: 8px;
             }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
@@ -412,7 +402,6 @@ class AntiMalwareApp(QWidget):
                 border: none;
             }
         """)
-        # hffjff
 
         main_layout = QVBoxLayout()
 
@@ -473,8 +462,8 @@ class AntiMalwareApp(QWidget):
             installed_software_list = check_software_versions()
             self.progress.setValue(60)
 
-            open_ports = scan_ports()
-            open_ports_2 = scan_ports_2()
+            # open_ports = scan_ports()
+            # open_ports_2 = scan_ports_2()
             self.progress.setValue(80)
 
             # Displaying scan results
@@ -483,7 +472,7 @@ class AntiMalwareApp(QWidget):
                 self.progress.setValue(90)
 
                 system_info_label = QLabel(
-                    f"Open Ports Found in the device:{open_ports}\n"
+                    # f"Open Ports Found in the device:{open_ports}\n"
                     f"\n"
                     f"Antivirus: {antivirus}\n"
                     f"\n"
@@ -529,7 +518,7 @@ class AntiMalwareApp(QWidget):
             self.progress.setValue(100)
 
     def run_update(self, software_name):
-        if software_name.lower() in [{UpdateWorker}]:
+        if software_name.lower() in ["python"]:
             self.update_worker = UpdateWorker(software_name)
             self.update_worker.update_complete.connect(self.on_update_complete)
             self.update_worker.start()
