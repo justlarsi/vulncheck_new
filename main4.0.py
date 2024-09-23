@@ -412,6 +412,7 @@ class AntiMalwareApp(QWidget):
                 border: none;
             }
         """)
+        # hffjff
 
         main_layout = QVBoxLayout()
 
