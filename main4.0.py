@@ -45,32 +45,32 @@ def get_device_ip():
     except Exception as e:
         return f"Error occurred: {e}"
 
-# # Function to scan open ports
-# def scan_ports():
-#     nm = nmap.PortScanner()
-#     ip = get_device_ip()
-#     print(f"{ip}")
-#     nm.scan(f'{ip}', '1-1024')  # Localhost scan for open ports
-#     # nm.scan('127.0.0.1', '1-1024')
-#     open_ports = []
-#     for host in nm.all_hosts():
-#         for proto in nm[host].all_protocols():
-#             lport = nm[host][proto].keys()
-#             open_ports.extend(list(lport))
-#     return open_ports
-#
-#
-# def scan_ports_2():
-#     nm = nmap.PortScanner()
-#
-#     # nm.scan(f'{ip}', '1-1024') # Localhost scan for open ports
-#     nm.scan('127.0.0.1', '1-1024')
-#     open_ports_2 = []
-#     for host in nm.all_hosts():
-#         for proto in nm[host].all_protocols():
-#             lport = nm[host][proto].keys()
-#             open_ports_2.extend(list(lport))
-#     return open_ports_2
+# Function to scan open ports
+def scan_ports():
+    nm = nmap.PortScanner()
+    ip = get_device_ip()
+    print(f"{ip}")
+    nm.scan(f'{ip}', '1-1024')  # Localhost scan for open ports
+    # nm.scan('127.0.0.1', '1-1024')
+    open_ports = []
+    for host in nm.all_hosts():
+        for proto in nm[host].all_protocols():
+            lport = nm[host][proto].keys()
+            open_ports.extend(list(lport))
+    return open_ports
+
+
+def scan_ports_2():
+    nm = nmap.PortScanner()
+
+    # nm.scan(f'{ip}', '1-1024') # Localhost scan for open ports
+    nm.scan('127.0.0.1', '1-1024')
+    open_ports_2 = []
+    for host in nm.all_hosts():
+        for proto in nm[host].all_protocols():
+            lport = nm[host][proto].keys()
+            open_ports_2.extend(list(lport))
+    return open_ports_2
 
 
 def check_antivirus():
@@ -222,7 +222,7 @@ class UpdateWorker(QThread):
                 self.update_complete.emit(f"Python updated successfully from {current_version} to {updated_version}.",
                                           updated_version)
             else:
-                self.update_complete.emit(f"Python update failed. Current version: {current_version}.", current_version)
+                self.update_complete.emit(f"Python not updated. Current version matches with latest version. Please wait until a new version is released and then try again: {current_version}.", current_version)
 
         except subprocess.CalledProcessError as e:
             error_message = f"Update process failed: {e.stderr}"
@@ -419,6 +419,20 @@ class AntiMalwareApp(QWidget):
         scan_button.setMinimumHeight(50)  # Increase button height for better UX
         main_layout.addWidget(scan_button)
 
+        # scan softwares
+        scan_button = QPushButton("Scan Softwares")
+        scan_button.setFont(QFont('Arial', 16, QFont.Bold))
+        scan_button.clicked.connect(self.run_scan_softwares)
+        scan_button.setMinimumHeight(50)  # Increase button height for better UX
+        main_layout.addWidget(scan_button)
+
+        # scan ports
+        scan_button = QPushButton("Scan open ports")
+        scan_button.setFont(QFont('Arial', 16, QFont.Bold))
+        scan_button.clicked.connect(self.run_scan_ports)
+        scan_button.setMinimumHeight(50)  # Increase button height for better UX
+        main_layout.addWidget(scan_button)
+
         # Progress Bar
         self.progress = QProgressBar(self)
         self.progress.setValue(0)
@@ -462,8 +476,8 @@ class AntiMalwareApp(QWidget):
             installed_software_list = check_software_versions()
             self.progress.setValue(60)
 
-            # open_ports = scan_ports()
-            # open_ports_2 = scan_ports_2()
+            open_ports = scan_ports()
+            open_ports_2 = scan_ports_2()
             self.progress.setValue(80)
 
             # Displaying scan results
@@ -472,7 +486,7 @@ class AntiMalwareApp(QWidget):
                 self.progress.setValue(90)
 
                 system_info_label = QLabel(
-                    # f"Open Ports Found in the device:{open_ports}\n"
+                    f"Open Ports Found in the device:{open_ports}\n"
                     f"\n"
                     f"Antivirus: {antivirus}\n"
                     f"\n"
@@ -516,6 +530,98 @@ class AntiMalwareApp(QWidget):
 
         finally:
             self.progress.setValue(100)
+
+    def run_scan_ports(self):
+        global open_ports_label
+        self.clear_scroll_area()
+        self.progress.setValue(10)
+
+        try:
+            open_ports = scan_ports()
+            self.progress.setValue(30)
+            open_ports_2 = scan_ports_2()
+            self.progress.setValue(50)
+
+            # Convert ports to strings if they are integers
+            open_ports_str = [str(port) for port in open_ports] if isinstance(open_ports, list) else []
+            open_ports_2_str = [str(port) for port in open_ports_2] if isinstance(open_ports_2, list) else []
+
+            open_ports_label = QLabel(
+                f"Open Ports Found in the device:\n"
+                f"{'\n'.join(open_ports_str) if open_ports_str else 'No open ports found.'}\n\n"
+                f"Additional Scan Results:\n"
+                f"{'\n'.join(open_ports_2_str) if open_ports_2_str else 'No additional open ports found.'}"
+            )
+
+            self.scroll_layout.addWidget(open_ports_label)
+            self.progress.setValue(100)
+
+        except Exception as e:
+            error_label = QLabel(f"Error occurred while scanning ports: {e}")
+            self.scroll_layout.addWidget(error_label)
+            self.progress.setValue(100)
+
+    def run_scan_softwares(self):
+        self.clear_scroll_area()
+        self.progress.setValue(0)
+
+        try:
+            self.progress.setValue(10)
+            system_info = get_system_info()
+            software_versions = check_software()
+            self.progress.setValue(20)
+            installed_software_info = check_software_versions()
+            installed_software_list = check_software_versions()
+            self.progress.setValue(50)
+
+            # Debugging output
+            print("Installed Software Info:", installed_software_info)  # You can log this or use a logger instead
+
+            if isinstance(installed_software_list, list):
+                recommendations = check_vulnerabilities(installed_software_list, 'vulnerabilities.json')
+                self.progress.setValue(90)
+
+                system_info_label = QLabel(
+                    f"System: {system_info['OS']}\n"
+                    f"\n"f"\n"f"\n"
+                    f"Software Version: {software_versions}\n"
+
+                )
+                self.scroll_layout.addWidget(system_info_label)
+
+                for rec in recommendations:
+                    software_info = QLabel(f"Software: {rec['software']} v{rec['version']}\n")
+                    self.scroll_layout.addWidget(software_info)
+
+                    vulnerability_text = ""
+                    for vuln in rec['vulnerabilities']:
+                        vulnerability_text += f"  - CVE: {vuln['cve_id']}\n    Severity: {vuln['severity']}\n    Description: {vuln['description']}\n    CVSS Score: {vuln['cvss_score']}\n\n"
+
+                    vulnerability_text_edit = QTextEdit()
+                    vulnerability_text_edit.setReadOnly(True)
+                    vulnerability_text_edit.setText(vulnerability_text)
+                    self.scroll_layout.addWidget(vulnerability_text_edit)
+
+                    update_button = QPushButton(f"Update {rec['software']}")
+                    update_button.clicked.connect(partial(self.run_update, rec['software']))
+                    self.scroll_layout.addWidget(update_button)
+
+                    separator = QFrame()
+                    separator.setFrameShape(QFrame.HLine)
+                    separator.setFrameShadow(QFrame.Sunken)
+                    self.scroll_layout.addWidget(separator)
+
+            else:
+                error_label = QLabel("Error retrieving software information.")
+                self.scroll_layout.addWidget(error_label)
+
+        except Exception as e:
+            error_label = QLabel(f"Error occurred: {e}")
+            self.scroll_layout.addWidget(error_label)
+
+        finally:
+            self.progress.setValue(100)
+
 
     def run_update(self, software_name):
         if software_name.lower() in ["python"]:
