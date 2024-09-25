@@ -7,13 +7,18 @@ import psutil
 import platform
 import json
 import requests
+import subprocess
+import os
+import sys
+import time
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar, QTextEdit, \
-    QScrollArea, QFrame, QMessageBox
-from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QMetaObject
+    QScrollArea, QFrame, QMessageBox, QDialog, QGridLayout
+from PyQt5.QtGui import QFont, QMovie
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QMetaObject, QTimer
 from functools import partial
 
 from nmap import nmap
+from pip._internal.cli.cmdoptions import retries
 
 
 # Function to get system info
@@ -233,18 +238,45 @@ class UpdateWorker(QThread):
             error_message = f"Unexpected error during update: {str(e)}"
             logging.error(error_message)
             self.update_complete.emit(error_message, "Unknown Version")
-    def update_windows_os(self):
+
+    def update_windows_os(retries=3, timeout=600):
         try:
+            # Check if script has admin privileges
+            if not os.getuid() == 0:
+                raise PermissionError("Administrator privileges are required to perform Windows updates.")
+
             update_command = 'powershell "Get-WindowsUpdate -Install -AcceptAll"'
-            update_process = subprocess.run(update_command, shell=True, capture_output=True, text=True)
 
-            if update_process.returncode != 0:
-                raise Exception(f"Windows Update failed: {update_process.stderr}")
+            # Adding retry mechanism and timeout
+            for attempt in range(retries):
+                try:
+                    print(f"Attempt {attempt + 1} to update Windows...")
 
-            return "Windows OS updated successfully."
+                    # Run the update command with timeout
+                    update_process = subprocess.run(update_command, shell=True, capture_output=True, text=True,
+                                                    timeout=timeout)
+
+                    if update_process.returncode == 0:
+                        print(update_process.stdout)
+                        return "Windows OS updated successfully."
+                    else:
+                        print(f"Windows Update failed: {update_process.stderr}")
+                        raise Exception("Update command returned non-zero exit code.")
+
+                except subprocess.TimeoutExpired:
+                    print("Update process timed out.")
+                except Exception as e:
+                    print(f"Error during update attempt {attempt + 1}: {str(e)}")
+
+                # Retry after a short delay
+                time.sleep(5)
+
+            raise Exception("Failed to update Windows OS after multiple attempts.")
+
+        except PermissionError as e:
+            raise Exception(f"Permission error: {str(e)}")
         except Exception as e:
             raise Exception(f"Update failed for Windows OS: {str(e)}")
-
     def update_nodejs(self):
         try:
             # Update npm itself
@@ -332,13 +364,14 @@ class UpdateWorker(QThread):
             return "Unknown Version"
 
 
+
 class AntiMalwareApp(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("Anti-Malware Security Suite")
+        self.setWindowTitle("Anti-Malware Software")
         self.setGeometry(100, 100, 900, 700)  # Increased size for better layout
         self.setStyleSheet("""
             QWidget {
@@ -394,7 +427,6 @@ class AntiMalwareApp(QWidget):
             QScrollBar::handle:vertical {
                 background: #1F8C56;
                 min-height: 800px;
-                
                 border-radius: 8px;
             }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
@@ -402,77 +434,226 @@ class AntiMalwareApp(QWidget):
                 border: none;
             }
         """)
-
         main_layout = QVBoxLayout()
-
-        # Title
         title = QLabel("Anti-Malware Software")
         title.setFont(QFont('Arial', 28, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("color: #E0E0E0;")
         main_layout.addWidget(title)
 
-        # Scan Button
         scan_button = QPushButton("Scan System")
         scan_button.setFont(QFont('Arial', 16, QFont.Bold))
         scan_button.clicked.connect(self.run_scan)
         scan_button.setMinimumHeight(50)  # Increase button height for better UX
         main_layout.addWidget(scan_button)
 
-        # scan softwares
         scan_button = QPushButton("Scan Softwares")
         scan_button.setFont(QFont('Arial', 16, QFont.Bold))
         scan_button.clicked.connect(self.run_scan_softwares)
         scan_button.setMinimumHeight(50)  # Increase button height for better UX
         main_layout.addWidget(scan_button)
 
-        # scan ports
         scan_button = QPushButton("Scan open ports")
         scan_button.setFont(QFont('Arial', 16, QFont.Bold))
         scan_button.clicked.connect(self.run_scan_ports)
         scan_button.setMinimumHeight(50)  # Increase button height for better UX
         main_layout.addWidget(scan_button)
 
-        # Progress Bar
+        main_layout.addStretch(1)
+        self.setLayout(main_layout)
+
+    def run_scan(self):
+        self.scan_dialog = ScanDialog("Scan System")
+        self.scan_dialog.show()
+
+    def run_scan_softwares(self):
+        self.scan_dialog = ScanDialog("Scan Softwares")
+        self.scan_dialog.show()
+
+    def run_scan_ports(self):
+        self.scan_dialog = ScanDialog("Scan open ports")
+        self.scan_dialog.show()
+
+
+class UpdateDialog(QDialog):
+    def __init__(self, software_name):
+        super().__init__()
+        self.software_name = software_name
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle("Update Progress")
+        self.setGeometry(500, 150, 400, 200)
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1,
+                                            stop:0 #0A0F0D, stop:0.5 #0F5734, stop:1 #1F8C56);
+                color: #E0E0E0;
+                font-family: Arial, sans-serif;
+            }
+            QLabel {
+                font-size: 18px;
+                color: #E0E0E0;
+                padding: 10px;
+                border: none;
+            }
+            QProgressBar {
+                border: 2px solid #1F8C56;
+                border-radius: 8px;
+                text-align: center;
+                font-size: 14px;
+                color: #FFFFFF;
+                background-color: #0A0F0D;
+                padding: 5px;
+            }
+            QProgressBar::chunk {
+                background-color: #1F8C56;
+                width: 20px;
+                margin: 1px;
+            }
+        """)
+        layout = QGridLayout()
+
+        self.progress = QProgressBar(self)
+        self.progress.setValue(0)
+        self.progress.setFormat("Update Progress: %p%")  # Show percentage with label
+        self.progress.setMinimumHeight(30)
+        layout.addWidget(self.progress, 0, 0, 1, 2)
+
+        self.loading_label = QLabel("Loading...")
+        self.loading_label.setFont(QFont('Arial', 24, QFont.Bold))
+        self.loading_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.loading_label, 1, 0, 1, 2)
+
+        self.setLayout(layout)
+
+        self.update_worker = UpdateWorker(self.software_name)
+        self.update_worker.update_complete.connect(self.update_complete)
+        self.update_worker.start()
+
+    def update_complete(self, message, version):
+        QMessageBox.information(self, "Update Complete", f"{message}\nUpdated Version: {version}")
+        self.close()
+
+class ScanDialog(QDialog):
+    def __init__(self, title):
+        super().__init__()
+        self.title = title
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(500, 150, 900, 150)
+        # self.setFixedSize(900, 50)
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1,
+                                            stop:0 #0A0F0D, stop:0.5 #0F5734, stop:1 #1F8C56);
+                color: #E0E0E0;
+                font-family: Arial, sans-serif;
+            }
+            QLabel {
+                font-size: 18px;
+                color: #E0E0E0;
+                padding: 10px;
+                border: none;
+            }
+            QProgressBar {
+                border: 2px solid #1F8C56;
+                border-radius: 8px;
+                text-align: center;
+                font-size: 14px;
+                color: #FFFFFF;
+                background-color: #0A0F0D;
+                padding: 5px;
+            }
+            QProgressBar::chunk {
+                background-color: #1F8C56;
+                width: 20px;
+                margin: 1px;
+            }
+            QScrollArea {
+                border: 1px solid #4C566A;
+                border-radius: 10px;
+                background-color: #0A0F0D;
+            }
+            QScrollBar:vertical {
+                background: #0A0F0D;
+                width: 18px;
+                margin: 16px 0 16px 0;
+ border-radius: 8px;
+            }
+            QScrollBar::handle:vertical {
+                background: #1F8C56;
+                min-height: 800px;
+                border-radius: 8px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                background: none;
+                border: none;
+            }
+        """)
+        layout = QGridLayout()
+
         self.progress = QProgressBar(self)
         self.progress.setValue(0)
         self.progress.setFormat("Scan Progress: %p%")  # Show percentage with label
         self.progress.setMinimumHeight(30)
-        main_layout.addWidget(self.progress)
+        layout.addWidget(self.progress, 0, 0, 1, 2)
 
-        # Scroll Area for displaying scan results
-        self.scroll_area = QScrollArea(self)
-        self.scroll_area.setWidgetResizable(True)
+        self.loading_label = QLabel("Loading...")
+        self.loading_label.setFont(QFont('Arial', 24, QFont.Bold))
+        self.loading_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.loading_label, 1, 0, 1, 2)
+
+        # # Loading spinner
+        # self.loading_spinner = QLabel()
+        # self.loading_spinner.setAlignment(Qt.AlignCenter)
+        # self.loading_movie = QMovie("loading.gif")
+        # self.loading_spinner.setMovie(self.loading_movie)
+        # self.loading_movie.start()
+        # layout.addWidget(self.loading_spinner, 2, 0, 1, 2)
+
+        # self.output_label = QLabel()
+        # self.output_label.setFont(QFont('Arial', 18, QFont.Bold))
+        # self.output_label.setAlignment(Qt.AlignCenter)
+        # layout.addWidget(self.output_label, 2, 0, 1, 2)
+
+        self.scroll_area = QScrollArea()
         self.scroll_widget = QWidget()
         self.scroll_layout = QVBoxLayout(self.scroll_widget)
-        self.scroll_widget.setLayout(self.scroll_layout)
         self.scroll_area.setWidget(self.scroll_widget)
-        main_layout.addWidget(self.scroll_area)
+        self.scroll_area.setWidgetResizable(True)
+        layout.addWidget(self.scroll_area, 3, 0, 1, 2)
 
-        # Stretch to adjust content position dynamically
-        main_layout.addStretch(1)
+        self.setLayout(layout)
 
-        self.setLayout(main_layout)
+        if self.title == "Scan System":
+            QTimer.singleShot(0, self.scan_system)
+        elif self.title == "Scan Softwares":
+            QTimer.singleShot(0, self.scan_softwares)
+        elif self.title == "Scan open ports":
+            QTimer.singleShot(0, self.scan_ports)
 
-    def clear_scroll_area(self):
-        """Clears all widgets from the scroll area."""
-        for i in reversed(range(self.scroll_layout.count())):
-            widget_to_remove = self.scroll_layout.itemAt(i).widget()
-            if widget_to_remove is not None:
-                widget_to_remove.setParent(None)
+    def display_results(self):
+        self.progress.hide()
+        self.loading_label.hide()
+        # self.loading_spinner.hide()
+        self.scroll_area.show()
 
-    def run_scan(self):
+    def scan_system(self):
         self.clear_scroll_area()
         self.progress.setValue(0)
+        self.loading_label.setText("Scanning system...")
 
         try:
             system_info = get_system_info()
             self.progress.setValue(20)
 
-            software_versions = check_software()
+            software_info = check_software()
             self.progress.setValue(40)
 
-            antivirus = check_antivirus()
+            antivirus_status = check_antivirus()
             installed_software_list = check_software_versions()
             self.progress.setValue(60)
 
@@ -480,7 +661,6 @@ class AntiMalwareApp(QWidget):
             open_ports_2 = scan_ports_2()
             self.progress.setValue(80)
 
-            # Displaying scan results
             if isinstance(installed_software_list, list):
                 recommendations = check_vulnerabilities(installed_software_list, 'vulnerabilities.json')
                 self.progress.setValue(90)
@@ -488,14 +668,17 @@ class AntiMalwareApp(QWidget):
                 system_info_label = QLabel(
                     f"Open Ports Found in the device:{open_ports}\n"
                     f"\n"
-                    f"Antivirus: {antivirus}\n"
+                    f"Antivirus: {antivirus_status}\n"
                     f"\n"
                     f"System: {system_info['OS']}\n"
                     f"\n"f"\n"f"\n"
-                    f"Software Version: {software_versions}\n"
+                    f"Software Version: {software_info}\n"
+                    f"\n" f"\n" f"\n"
+                    f"Below are some of the softwares that are Vulnerable\n"
 
 
-                                           )
+
+                )
                 self.scroll_layout.addWidget(system_info_label)
 
                 for rec in recommendations:
@@ -503,12 +686,14 @@ class AntiMalwareApp(QWidget):
                     self.scroll_layout.addWidget(software_info)
 
                     vulnerability_text = ""
+
                     for vuln in rec['vulnerabilities']:
                         vulnerability_text += f"  - CVE: {vuln['cve_id']}\n    Severity: {vuln['severity']}\n    Description: {vuln['description']}\n    CVSS Score: {vuln['cvss_score']}\n\n"
 
                     vulnerability_text_edit = QTextEdit()
                     vulnerability_text_edit.setReadOnly(True)
                     vulnerability_text_edit.setText(vulnerability_text)
+                    vulnerability_text_edit.setMinimumHeight(500) # Increase the height of the text edit
                     self.scroll_layout.addWidget(vulnerability_text_edit)
 
                     update_button = QPushButton(f"Update {rec['software']}")
@@ -531,60 +716,38 @@ class AntiMalwareApp(QWidget):
         finally:
             self.progress.setValue(100)
 
-    def run_scan_ports(self):
-        global open_ports_label
-        self.clear_scroll_area()
-        self.progress.setValue(10)
-
-        try:
-            open_ports = scan_ports()
-            self.progress.setValue(30)
-            open_ports_2 = scan_ports_2()
-            self.progress.setValue(50)
-
-            # Convert ports to strings if they are integers
-            open_ports_str = [str(port) for port in open_ports] if isinstance(open_ports, list) else []
-            open_ports_2_str = [str(port) for port in open_ports_2] if isinstance(open_ports_2, list) else []
-
-            open_ports_label = QLabel(
-                f"Open Ports Found in the device:\n"
-                f"{'\n'.join(open_ports_str) if open_ports_str else 'No open ports found.'}\n\n"
-                f"Additional Scan Results:\n"
-                f"{'\n'.join(open_ports_2_str) if open_ports_2_str else 'No additional open ports found.'}"
-            )
-
-            self.scroll_layout.addWidget(open_ports_label)
-            self.progress.setValue(100)
-
-        except Exception as e:
-            error_label = QLabel(f"Error occurred while scanning ports: {e}")
-            self.scroll_layout.addWidget(error_label)
-            self.progress.setValue(100)
-
-    def run_scan_softwares(self):
+    def scan_softwares(self):
         self.clear_scroll_area()
         self.progress.setValue(0)
+        self.loading_label.setText("Scanning system...")
 
         try:
-            self.progress.setValue(10)
             system_info = get_system_info()
-            software_versions = check_software()
             self.progress.setValue(20)
-            installed_software_info = check_software_versions()
-            installed_software_list = check_software_versions()
-            self.progress.setValue(50)
 
-            # Debugging output
-            print("Installed Software Info:", installed_software_info)  # You can log this or use a logger instead
+            software_info = check_software()
+            self.progress.setValue(40)
+
+            installed_software_list = check_software_versions()
+            self.progress.setValue(60)
+
 
             if isinstance(installed_software_list, list):
                 recommendations = check_vulnerabilities(installed_software_list, 'vulnerabilities.json')
                 self.progress.setValue(90)
 
                 system_info_label = QLabel(
+
+                    f"System information: "
+                    f"\n"
+                    f"Processor: {system_info ['Processor']} \n"
+                    f"Version: {system_info ['Version']}\n"
+                    f"Architecture: {system_info ['Architecture']}\n"
+                    f"\n"
                     f"System: {system_info['OS']}\n"
+                    f""
                     f"\n"f"\n"f"\n"
-                    f"Software Version: {software_versions}\n"
+                    f"Software Version: {software_info}\n"
 
                 )
                 self.scroll_layout.addWidget(system_info_label)
@@ -600,6 +763,7 @@ class AntiMalwareApp(QWidget):
                     vulnerability_text_edit = QTextEdit()
                     vulnerability_text_edit.setReadOnly(True)
                     vulnerability_text_edit.setText(vulnerability_text)
+                    vulnerability_text_edit.setMinimumHeight(500) # Increase the height of the text edit
                     self.scroll_layout.addWidget(vulnerability_text_edit)
 
                     update_button = QPushButton(f"Update {rec['software']}")
@@ -622,18 +786,215 @@ class AntiMalwareApp(QWidget):
         finally:
             self.progress.setValue(100)
 
+    def scan_ports(self):
+        self.clear_scroll_area()
+        self.loading_label.setText("Scanning ports...")
+        self.progress.setValue(40)
+        open_ports = scan_ports()
+        self.progress.setValue(60)
+
+
+        self.loading_label.setText("Scan complete.")
+        for port in open_ports:
+            port_label = QLabel(f"Open Port: {port}")
+            self.scroll_layout.addWidget(port_label)
+            self.progress.setValue(100)
+
+        self.display_results()
+
+    def clear_scroll_area(self):
+        for i in reversed(range(self.scroll_layout.count())):
+            widget_to_remove = self.scroll_layout.itemAt(i).widget()
+            if widget_to_remove is not None:
+                widget_to_remove.setParent(None)
 
     def run_update(self, software_name):
-        if software_name.lower() in ["python"]:
-            self.update_worker = UpdateWorker(software_name)
-            self.update_worker.update_complete.connect(self.on_update_complete)
-            self.update_worker.start()
-        else:
-            QMessageBox.warning(self, "Update Not Supported",
-                                f"No update method available for {software_name}. Please update manually.")
+        update_dialog = UpdateDialog(software_name)
+        update_dialog.exec_()
 
-    def on_update_complete(self, message, version):
-        QMessageBox.information(self, "Update Status", f"{message}\nUpdated Version: {version}")
+    def update_complete(self, message, version):
+        QMessageBox.information(self, "Update Complete", f"{message}\nUpdated Version: {version}")
+
+
+class UpdateWorker(QThread):
+    update_complete = pyqtSignal(str, str)  # Signal to emit update completion message and version
+
+    def __init__(self, software_name):
+        super().__init__()
+        self.software_name = software_name
+
+    def run(self):
+        try:
+            updated_version = None
+            if self.software_name.lower() == "python":
+                updated_version = self.update_python()
+            elif self.software_name.lower() == "microsoft windows":
+                updated_version = self.update_windows_os()
+            elif self.software_name.lower() == "node.js":
+                updated_version = self.update_nodejs()
+            elif self.software_name.lower() == "java":
+                updated_version = self.update_java()
+            elif self.software_name.lower() == "rust":
+                updated_version = self.update_rust()
+            elif self.software_name.lower() == "docker":
+                updated_version = self.update_docker()
+            elif platform.system().lower() == "linux":
+                updated_version = self.update_linux_package()
+
+            if not updated_version:
+                updated_version = self.update_with_winget()  # Fallback to winget for general apps
+
+            self.update_complete.emit(f"{self.software_name} update successful.", updated_version)
+        except Exception as e:
+            self.update_complete.emit(f"Update failed for {self.software_name}: {str(e)}", "Unknown Version")
+
+    def update_with_winget(self):
+        try:
+            update_command = f'winget upgrade --id "{self.software_name}"'
+            update_process = subprocess.run(update_command, shell=True, capture_output=True, text=True)
+
+            if update_process.returncode != 0:
+                raise Exception(f"Update failed: {update_process.stderr}")
+
+            return self.get_updated_version(self.software_name)
+        except Exception as e:
+            raise Exception(f"Update failed for {self.software_name}: {str(e)}")
+
+    def update_python(self):
+        try:
+            # Configure logging for better debug information
+            logging.basicConfig(filename='update_python_packages.log', level=logging.INFO,
+                                format='%(asctime)s - %(levelname)s - %(message)s')
+
+            # Get the current Python version
+            current_version = sys.version.split()[0]
+
+            # Update Python to the latest version using pyupgrade
+            logging.info("Updating Python to the latest version...")
+            subprocess.run(["py", "-m", "pip", "install", "--upgrade", "pip"], capture_output=True, text=True,
+                           check=True)
+            subprocess.run(["py", "-m", "pip", "install", "--upgrade", "setuptools"], capture_output=True, text=True,
+                           check=True)
+
+            # Get the updated Python version
+            updated_version = subprocess.run(["python", "--version"], capture_output=True, text=True,
+                                             check=True).stdout.strip().split()[1]
+
+            # Check if the update was successful
+            if updated_version != current_version:
+                return updated_version
+            else:
+                return current_version
+
+        except subprocess.CalledProcessError as e:
+            error_message = f"Update process failed: {e.stderr}"
+            logging.error(error_message)
+            raise Exception(error_message)
+        except Exception as e:
+            # Catch all unexpected errors
+            error_message = f"Unexpected error during update: {str(e)}"
+            logging.error(error_message)
+            raise Exception(error_message)
+
+    def update_windows_os(self):
+        try:
+            update_command = 'powershell "Get-WindowsUpdate -Install -AcceptAll"'
+            update_process = subprocess.run(update_command, shell=True, capture_output=True, text=True)
+
+            if update_process.returncode != 0:
+                raise Exception(f"Windows Update failed: {update_process.stderr}")
+
+            return "Windows OS updated successfully."
+        except Exception as e:
+            raise Exception(f"Update failed for Windows OS: {str(e)}")
+
+    def update_nodejs(self):
+        try:
+            # Update npm itself
+            subprocess.run("npm install -g npm", shell=True, capture_output=True, text=True)
+            update_process = subprocess.run("npm outdated -g", shell=True, capture_output=True, text=True)
+
+            outdated_packages = update_process.stdout.splitlines()
+            updated_packages = []
+            for pkg in outdated_packages:
+                package_name = pkg.split()[0]
+                subprocess.run(f"npm install -g {package_name}", shell=True, capture_output=True, text=True)
+                updated_packages.append(package_name)
+
+            return ", ".join(updated_packages) if updated_packages else "No npm packages updated."
+        except Exception as e:
+            raise Exception(f"Update failed for Node.js: {str(e)}")
+
+    def update_java(self):
+        try:
+            update_command = "sdk update java"
+            update_process = subprocess.run(update_command, shell=True, capture_output=True, text=True)
+
+            if update_process.returncode != 0:
+                raise Exception(f"Java update failed: {update_process.stderr}")
+
+            return "Java updated successfully."
+        except Exception as e:
+            raise Exception(f"Update failed for Java: {str(e)}")
+
+    def update_rust(self):
+        try:
+            subprocess.run("rustup update", shell=True, capture_output=True, text=True)
+            return "Rust toolchain updated successfully."
+        except Exception as e:
+            raise Exception(f"Update failed for Rust: {str(e)}")
+
+    def update_docker(self):
+        try:
+            subprocess.run("docker system prune -f", shell=True, capture_output=True, text=True)
+            subprocess.run("docker images | grep -v REPOSITORY | awk '{print $1\":\"$2}' | xargs -I {} docker pull {}",
+                           shell=True, capture_output=True, text=True)
+            return "Docker images updated successfully."
+        except Exception as e:
+            raise Exception(f"Update failed for Docker: {str(e)}")
+
+    def update_office(self):
+        try:
+            # Office 2013 or other Office versions
+            update_command = 'powershell "(New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher().Search($null).Updates | foreach { $_.Install() }"'
+            update_process = subprocess.run(update_command, shell=True, capture_output=True, text=True)
+
+            if update_process.returncode != 0:
+                raise Exception(f"Microsoft Office update failed: {update_process.stderr}")
+
+            return "Microsoft Office updated successfully."
+        except Exception as e:
+            raise Exception(f"Update failed for Microsoft Office: {str(e)}")
+
+    def update_linux_package(self):
+        try:
+            distro = platform.linux_distribution()[0].lower()
+            if "ubuntu" in distro or "debian" in distro:
+                update_command = "sudo apt update && sudo apt upgrade -y"
+            elif "fedora" in distro or "centos" in distro:
+                update_command = "sudo yum update -y"
+            else:
+                return "Unsupported Linux distro for automated updates."
+
+            subprocess.run(update_command, shell=True, capture_output=True, text=True)
+            return f"{distro.capitalize()} packages updated successfully."
+        except Exception as e:
+            raise Exception(f"Update failed for Linux package: {str(e)}")
+
+    def get_updated_version(self, software_name):
+        try:
+            version_command = f'winget show --id "{software_name}"'
+            version_process = subprocess.run(version_command, shell=True, capture_output=True, text=True)
+
+            if version_process.returncode == 0:
+                # Assuming the output contains version info in a specific format
+                for line in version_process.stdout.splitlines():
+                    if "Version" in line:
+                        return line.split(":")[-1].trim()
+            return "Unknown Version"
+        except Exception:
+            return "Unknown Version"
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
