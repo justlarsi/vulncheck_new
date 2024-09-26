@@ -52,17 +52,84 @@ def get_device_ip():
 
 # Function to scan open ports
 def scan_ports():
+    global port_detail, port_description, port_risk
     nm = nmap.PortScanner()
     ip = get_device_ip()
-    print(f"{ip}")
-    nm.scan(f'{ip}', '1-1024')  # Localhost scan for open ports
-    # nm.scan('127.0.0.1', '1-1024')
+    nm.scan(f'{ip}', '1-65535')  # Localhost scan for open ports
     open_ports = []
     for host in nm.all_hosts():
         for proto in nm[host].all_protocols():
             lport = nm[host][proto].keys()
-            open_ports.extend(list(lport))
+            for port in lport:
+                port_state = nm[host][proto][port]['state']
+                port_service = nm[host][proto][port]['name']
+                if port_state == 'open':
+                    port_risk = 'High Risk'
+                    port_description = f' This port is used for {get_port_description(port)}. Having this port open can pose a security risk.'
+                    port_detail = f'Port {port} ({port_service}) is open and unfiltered.{port_risk}'
+                elif port_state == 'filtered':
+                    port_risk = 'Minimal Risk'
+                    port_description = f' This port is used for {get_port_description(port)}. Having this port open but filtered reduces the security risk.'
+                    port_detail = f'Port {port} ({port_service}) is open and filtered. {port_risk}'
+                open_ports.append({
+                    'port': port,
+                    'state': port_state,
+                    'service': port_service,
+                    'risk': port_risk,
+                    'description': port_description,
+                    'detail': port_detail,
+                })
     return open_ports
+
+def get_port_description(port):
+    # This function returns a description of the port and its risks
+    # You can add more port descriptions here
+    port_descriptions = {
+        20: 'FTP (File Transfer Protocol) - used for transferring files over the internet.',
+        21: 'FTP (File Transfer Protocol) - used for transferring files over the internet.',
+        22: 'SSH (Secure Shell) - used for secure remote access to a computer.',
+        23: 'Telnet - used for unencrypted text communications, insecure and deprecated.',
+        25: 'SMTP (Simple Mail Transfer Protocol) - used for sending emails.',
+        53: 'DNS (Domain Name System) - used for resolving domain names to IP addresses.',
+        80: 'HTTP (Hypertext Transfer Protocol) - used for transferring data over the web.',
+        110: 'POP3 (Post Office Protocol version 3) - used for retrieving emails.',
+        123: 'NTP (Network Time Protocol) - used for clock synchronization between systems.',
+        135: 'Microsoft RPC (Remote Procedure Call) - used for managing services and tasks on remote systems.',
+        137: 'NetBIOS Name Service - used in older Windows networks for name resolution.',
+        139: 'NetBIOS Session Service - used for Windows file and printer sharing.',
+        143: 'IMAP (Internet Message Access Protocol) - used for retrieving emails.',
+        161: 'SNMP (Simple Network Management Protocol) - used for network device management.',
+        179: 'BGP (Border Gateway Protocol) - used for internet routing between different systems.',
+        389: 'LDAP (Lightweight Directory Access Protocol) - used for directory services like Active Directory.',
+        443: 'HTTPS (Hypertext Transfer Protocol Secure) - used for secure data transfer over the web.',
+        445: 'SMB (Server Message Block) - used for sharing files and printers over a network, vulnerable to attacks like WannaCry.',
+        465: 'SMTPS (Simple Mail Transfer Protocol Secure) - used for secure email transmission.',
+        514: 'Syslog - used for logging network events and activities.',
+        623: 'IPMI (Intelligent Platform Management Interface) - used for remote management of systems, vulnerable if exposed to the internet.',
+        993: 'IMAPS (IMAP Secure) - used for securely retrieving emails.',
+        995: 'POP3S (POP3 Secure) - used for securely retrieving emails.',
+        1433: 'MSSQL - used by Microsoft SQL Server for database management.',
+        1521: 'Oracle DB - used for Oracle database management.',
+        1723: 'PPTP (Point-to-Point Tunneling Protocol) - used for VPN connections, considered weak encryption.',
+        3306: 'MySQL - used for managing MySQL databases.',
+        3389: 'RDP (Remote Desktop Protocol) - used for remote desktop access, vulnerable to brute-force attacks.',
+        5432: 'PostgreSQL - used for managing PostgreSQL databases.',
+        5900: 'VNC (Virtual Network Computing) - used for remote desktop access, can be insecure if not properly configured.',
+        8080: 'HTTP Proxy or alternative HTTP port, sometimes used by web servers for testing or alternative services.',
+        5040: 'Microsoft Windows Media DRM Port - used for Digital Rights Management.',
+        7680: 'Delivery Optimization - used by Windows Update to share update files with other computers on the same network.',
+        16992: 'Intel AMT (Active Management Technology) - used for remote management of Intel-based devices.',
+        20582: 'Intel AMT (Active Management Technology) - used for remote management in some implementations.',
+        49664: 'Dynamic RPC - ephemeral port typically used by Windows for initiating remote procedure calls.',
+        49665: 'Dynamic RPC - secondary ephemeral port used for handling additional RPC sessions.',
+        49666: 'Dynamic RPC - ephemeral port, often engaged when higher load requires additional RPC connections.',
+        49667: 'Dynamic RPC - port assigned for a new RPC process initiated by another client request.',
+        49668: 'Dynamic RPC - ephemeral port dynamically allocated for continuation of ongoing RPC communications.',
+        49708: 'Dynamic RPC - port used for communication fallback in case of network congestion or interruptions.',
+        57621: 'Dynamic RPC - ephemeral port used for high-priority RPC requests under certain security protocols.'
+
+    }
+    return port_descriptions.get(port, 'Unknown port')
 
 
 def scan_ports_2():
@@ -788,18 +855,25 @@ class ScanDialog(QDialog):
 
     def scan_ports(self):
         self.clear_scroll_area()
-        self.loading_label.setText("Scanning ports...")
+        self.loading_label.setText("Scanning ports...""\n""Please Wait this might take time....")
         self.progress.setValue(40)
         open_ports = scan_ports()
         self.progress.setValue(60)
 
-
         self.loading_label.setText("Scan complete.")
         for port in open_ports:
-            port_label = QLabel(f"Open Port: {port}")
+            port_label = QLabel(f"Port {port['port']}"
+                                "\n"
+                                f"{port['description']}")
             self.scroll_layout.addWidget(port_label)
-            self.progress.setValue(100)
+            # port_description_label = QLabel(port['description'])
+            # self.scroll_layout.addWidget(port_description_label)
+            separator = QFrame()
+            separator.setFrameShape(QFrame.HLine)
+            separator.setFrameShadow(QFrame.Sunken)
+            self.scroll_layout.addWidget(separator)
 
+        self.progress.setValue(100)
         self.display_results()
 
     def clear_scroll_area(self):
